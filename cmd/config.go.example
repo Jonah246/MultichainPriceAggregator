@@ -1,0 +1,4 @@
+package main
+
+const ARB_WEB3_API_KEY = ""
+const POLY_WEB3_API_KEY = ""
