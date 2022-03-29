@@ -61,7 +61,7 @@ func (m *PriceMap) UpdatePrice(description string, price decimal.Decimal, source
 func (m *PriceMap) PrintPrice() {
 	goterm.Clear()
 
-	goterm.MoveCursor(1, 1)
+	goterm.MoveCursor(1, 2)
 	goterm.Printf("-----------------------------------------------------------\n")
 	goterm.Printf("_._._._._._._._._._._._._._._._._._._._._._._._._._._._._._.\n")
 

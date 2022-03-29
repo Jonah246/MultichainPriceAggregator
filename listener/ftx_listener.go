@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"sync"
 	"time"
 
 	"github.com/buger/jsonparser"
@@ -31,6 +32,7 @@ type FTXListener struct {
 
 	symbols []string
 	conn    *websocket.Conn
+	wg      sync.WaitGroup
 }
 
 func subscribe(conn *websocket.Conn, channels, symbols []string) error {
@@ -163,12 +165,15 @@ func (l *FTXListener) Listen() (chan listenerUpdatePrice, error) {
 	go ping(conn)
 
 	go func() {
-		defer conn.Close()
+		l.wg.Add(1)
+		defer l.wg.Done()
 		defer unsubscribe(conn, channels, symbols)
 		for {
 			var res Response
 			_, msg, err := conn.ReadMessage()
-
+			if err != nil {
+				return
+			}
 			typeMsg, err := jsonparser.GetString(msg, "type")
 			if typeMsg == "error" {
 				fmt.Printf("[ERROR]: error: %+v", string(msg))
@@ -218,6 +223,7 @@ func (l *FTXListener) Listen() (chan listenerUpdatePrice, error) {
 
 func (l *FTXListener) Close() {
 	l.conn.Close()
+	l.wg.Wait()
 }
 
 func (l *FTXListener) Description() string {

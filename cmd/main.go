@@ -37,20 +37,29 @@ func main() {
 
 	arbListener, err := listener.NewListenerByAPI(config.String("ARB_WEB3_API_KEY"))
 	if err != nil {
-		fmt.Println("err", err)
+		fmt.Println("Failed to open arb listener", err)
 		return
 	}
+	fmt.Printf("Opened Listener. %s\n", arbListener.Description())
+
 	arbListener.WatchPrice(listener.NewPriceAggregatorInfo(ARB_UNI_PRICE_AGGREGATOR, "UNI/USD", 8))
 	arbListener.WatchPrice(listener.NewPriceAggregatorInfo(ARB_ETH_PRICE_AGGREGATOR, "ETH/USD", 8))
 
 	polyListener, err := listener.NewListenerByAPI(config.String("POLY_WEB3_API_KEY"))
+	if err != nil {
+		fmt.Println("Failed to open poly listener", err)
+		return
+	}
+	fmt.Printf("Opened Listener. %s\n", polyListener.Description())
+
 	polyListener.WatchPrice(listener.NewPriceAggregatorInfo(POLY_UNI_PRICE_AGGREGATOR, "UNI/USD", 8))
 	polyListener.WatchPrice(listener.NewPriceAggregatorInfo(POLY_ETH_PRICE_AGGREGATOR, "ETH/USD", 8))
 
 	ftxListener, err := listener.NewFTXListener([]string{"ETH/USD", "UNI/USD"})
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println("Failed to open ftx listener", err)
 	}
+	fmt.Printf("Opened Listener. %s\n", arbListener.Description())
 
 	fmt.Println("start listen")
 	aggregator := listener.NewListenerAggregator(
@@ -64,7 +73,6 @@ func main() {
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	// go func() {
 	<-c
-	fmt.Println("exit")
 	aggregator.Close()
 	os.Exit(1)
 	// }()

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/big"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/ethereum/go-ethereum"
@@ -49,6 +50,7 @@ type ChainlinkListener struct {
 	blockCount int
 
 	client *ethclient.Client
+	wg     sync.WaitGroup
 	ctx    context.Context
 }
 
@@ -56,11 +58,6 @@ type simpleBlock struct {
 	blockNumber uint64
 	blockTime   uint64
 }
-
-// func NewListener(client *ethclient.Client) *Listener {
-// 	pool := NewSubscriptionPool()
-// 	return &Listener{client: client, pool: pool}
-// }
 
 func NewListenerByAPI(rawurl string) (listener *ChainlinkListener, err error) {
 	client, err := ethclient.Dial(rawurl)
@@ -122,8 +119,6 @@ func (l *ChainlinkListener) getTimeByBlockNumber(blockNumber uint64) (uint64, er
 	l.blocks[l.blockCount] = simpleBlock{blockNumber: b.NumberU64(), blockTime: b.Time()}
 	l.blockCount++
 
-	fmt.Println("getBlock:", b.Time(), b.Number())
-
 	return b.Time(), nil
 }
 
@@ -177,7 +172,9 @@ func (l *ChainlinkListener) Listen() (chan listenerUpdatePrice, error) {
 	if err != nil {
 		return nil, err
 	}
-	go func() {
+	go func(sub ethereum.Subscription, l *ChainlinkListener) {
+		l.wg.Add(1)
+		defer l.wg.Done()
 		for {
 			select {
 			case <-sub.Err():
@@ -186,7 +183,7 @@ func (l *ChainlinkListener) Listen() (chan listenerUpdatePrice, error) {
 				l.processLog(vLog) // pointer to event log
 			}
 		}
-	}()
+	}(sub, l)
 	l.pool.Append(sub)
 
 	l.updatePriceChan = make(chan listenerUpdatePrice)
@@ -194,5 +191,7 @@ func (l *ChainlinkListener) Listen() (chan listenerUpdatePrice, error) {
 }
 
 func (l *ChainlinkListener) Close() {
-	l.Close()
+	l.pool.Close()
+	l.client.Close()
+	l.wg.Wait()
 }
